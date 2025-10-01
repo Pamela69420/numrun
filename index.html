@@ -222,6 +222,77 @@
             }
         }
 
+        .shield-container {
+            display: inline-block;
+            font-size: 1.5rem;
+            margin-top: 5px;
+        }
+
+        .shield-icon {
+            display: inline-block;
+            margin: 0 2px;
+            filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.8));
+        }
+
+        @keyframes shieldGain {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.5) rotate(180deg);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1) rotate(360deg);
+                opacity: 1;
+            }
+        }
+
+        @keyframes shieldBreak {
+            0% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+            25% {
+                transform: scale(1.3) rotate(-15deg);
+            }
+            50% {
+                transform: scale(1.3) rotate(15deg);
+            }
+            75% {
+                transform: scale(0.8) rotate(-15deg);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes shieldPulse {
+            0%, 100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.8));
+            }
+            50% {
+                transform: scale(1.1);
+                filter: drop-shadow(0 0 15px rgba(16, 185, 129, 1));
+            }
+        }
+
+        .shield-gain {
+            animation: shieldGain 0.6s ease-out;
+        }
+
+        .shield-break {
+            animation: shieldBreak 0.5s ease-out forwards;
+        }
+
+        .shield-active {
+            animation: shieldPulse 2s ease-in-out infinite;
+        }
+
         .stats-panel {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
@@ -728,6 +799,8 @@
                     pointMultiplier = 2;
                     multiplierEndTime = Date.now() + 10000;
                     document.getElementById('feedback').textContent = 'Tarcza + podwójne punkty! 🛡️🌟';
+                    // Animacja pojawienia się tarczy
+                    setTimeout(() => updateShieldDisplay(true, 'gain'), 100);
                 } else if (streak === 10) {
                     skipsAvailable++;
                     document.getElementById('feedback').textContent = 'Dodatkowe przejście! ⭐';
@@ -742,6 +815,8 @@
 
                 // Użyj tarczy jeśli dostępna
                 if (shields > 0) {
+                    // Animacja rozbicia tarczy
+                    animateShieldBreak();
                     shields--;
                     document.getElementById('feedback').textContent = 'Ochroniona tarcza! 🛡️✨';
                     // Nie resetuj streak ani nie zabieraj czasu
@@ -817,13 +892,32 @@
             }
         }
 
-        function updateShieldDisplay() {
+        function updateShieldDisplay(animate = false, animationType = 'active') {
             const display = document.getElementById('shieldDisplay');
             if (shields > 0) {
-                const shieldIcons = '🛡️'.repeat(shields);
-                display.innerHTML = `<div style="color: #10b981; font-size: 0.9rem; margin-top: 3px;">${shieldIcons}</div>`;
+                let shieldHTML = '<div class="shield-container">';
+                for (let i = 0; i < shields; i++) {
+                    const animClass = animate && i === shields - 1 && animationType === 'gain' ? 'shield-gain' : 'shield-active';
+                    shieldHTML += `<span class="shield-icon ${animClass}">🛡️</span>`;
+                }
+                shieldHTML += '</div>';
+                display.innerHTML = shieldHTML;
             } else {
                 display.innerHTML = '';
+            }
+        }
+
+        function animateShieldBreak() {
+            const display = document.getElementById('shieldDisplay');
+            const shieldIcons = display.querySelectorAll('.shield-icon');
+            if (shieldIcons.length > 0) {
+                const lastShield = shieldIcons[shieldIcons.length - 1];
+                lastShield.classList.remove('shield-active');
+                lastShield.classList.add('shield-break');
+
+                setTimeout(() => {
+                    updateShieldDisplay();
+                }, 500);
             }
         }
 
