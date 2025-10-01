@@ -508,7 +508,8 @@
 
         function updateTimerDisplay() {
             document.getElementById('timeLeft').textContent = timeLeft;
-            const percentage = (timeLeft / 30) * 100;
+            // Dynamiczna skala: 0-45s = 0-100%
+            const percentage = Math.min((timeLeft / 45) * 100, 100);
             document.getElementById('timerBar').style.width = percentage + '%';
         }
 
@@ -690,9 +691,9 @@
 
                 points *= pointMultiplier;
 
-                // Dodaj czas tylko w trybie timed
+                // Dodaj czas tylko w trybie timed (max 45s)
                 if (gameMode === 'timed') {
-                    timeLeft += timeBonus;
+                    timeLeft = Math.min(timeLeft + timeBonus, 45);
                 }
 
                 score += points;
@@ -718,7 +719,7 @@
                 createParticles();
                 
                 if (streak === 3) {
-                    timeLeft += 5;
+                    timeLeft = Math.min(timeLeft + 5, 45);
                     document.getElementById('feedback').textContent = 'Bonus! +5 sekund 🔥';
                 } else if (streak === 5) {
                     pointMultiplier = 2;
