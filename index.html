@@ -807,8 +807,8 @@
             
             const avgTime = stats.correctAnswers > 0 ? (stats.totalTime / stats.correctAnswers).toFixed(1) : 0;
             document.getElementById('avgTime').textContent = avgTime + 's';
-            
-            const fastest = stats.fastestTime === Infinity ? '∞' : stats.fastestTime.toFixed(1) + 's';
+
+            const fastest = (stats.fastestTime === Infinity || stats.fastestTime === null || stats.fastestTime === undefined) ? '∞' : stats.fastestTime.toFixed(1) + 's';
             document.getElementById('fastestTime').textContent = fastest;
             
             document.getElementById('maxStreak').textContent = stats.maxStreak;
