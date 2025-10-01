@@ -1,6 +1,6 @@
 {
-  "name": "Quick Math - Gra Matematyczna",
-  "short_name": "Quick Math",
+  "name": "NumRun - Gra Matematyczna",
+  "short_name": "NumRun",
   "description": "Szybka gra matematyczna - trenuj umysł i zdobywaj punkty!",
   "start_url": "/",
   "display": "standalone",

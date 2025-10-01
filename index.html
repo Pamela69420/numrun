@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="description" content="Quick Math - Szybka gra matematyczna. Trenuj umysł i zdobywaj punkty!">
+    <meta name="description" content="NumRun - Szybka gra matematyczna. Trenuj umysł i zdobywaj punkty!">
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Quick Math">
-    <title>Quick Math - Gra Matematyczna</title>
+    <meta name="apple-mobile-web-app-title" content="NumRun">
+    <title>NumRun - Gra Matematyczna</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -305,7 +305,7 @@
 </head>
 <body>
     <div class="game-container" id="gameContainer">
-        <h1>Quick Math</h1>
+        <h1>NumRun</h1>
         
         <div class="mode-selection" id="modeSelection">
             <h2 style="margin-bottom: 30px; font-size: 1.8rem;">Wybierz tryb gry</h2>
@@ -840,7 +840,7 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
             `;
             
             document.getElementById('gameContainer').innerHTML = `
-                <h1>Quick Math</h1>
+                <h1>NumRun</h1>
                 ${gameOverScreen}
             `;
         }
@@ -920,7 +920,7 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
             document.getElementById('statsPanel').style.display = 'none';
             
             document.getElementById('gameContainer').innerHTML = `
-                <h1>Quick Math</h1>
+                <h1>NumRun</h1>
                 ${levelSelector}
             `;
         }
