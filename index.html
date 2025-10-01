@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="Quick Math - Szybka gra matematyczna. Trenuj umysł i zdobywaj punkty!">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Quick Math">
+    <title>Quick Math - Gra Matematyczna</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/icon-192.svg">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            min-width: 400px;
+            position: relative;
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .timer-container {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 10px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timer-bar {
+            background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.1s linear;
+            position: relative;
+        }
+
+        .timer-text {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .level-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .multiplier {
+            background: linear-gradient(45deg, #fbbf24, #f59e0b);
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .equation {
+            font-size: 3rem;
+            margin: 30px 0;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .answers {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .answer-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 1.5rem;
+            padding: 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .answer-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .answer-btn:hover::before {
+            left: 100%;
+        }
+
+        .answer-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .answer-btn.correct {
+            background: rgba(34, 197, 94, 0.8);
+            border-color: #22c55e;
+            animation: correctPulse 0.6s ease-out;
+        }
+
+        .answer-btn.wrong {
+            background: rgba(239, 68, 68, 0.8);
+            border-color: #ef4444;
+            animation: wrongShake 0.5s ease-out;
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .feedback {
+            font-size: 1.5rem;
+            margin: 20px 0;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #fbbf24;
+            border-radius: 50%;
+            animation: particleFloat 2s ease-out forwards;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(0);
+                opacity: 0;
+            }
+        }
+
+        .stats-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .stats-title {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .quit-btn {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .quit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .skip-btn {
+            background: linear-gradient(45deg, #8b5cf6, #a855f7);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .skip-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .skip-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 20px;
+                min-width: 320px;
+            }
+            
+            .equation {
+                font-size: 2rem;
+            }
+            
+            .answer-btn {
+                font-size: 1.2rem;
+                padding: 15px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <h1>Quick Math</h1>
+        
+        <div class="mode-selection" id="modeSelection">
+            <h2 style="margin-bottom: 30px; font-size: 1.8rem;">Wybierz tryb gry</h2>
+            
+            <div style="display: grid; gap: 20px; margin-bottom: 30px;">
+                <button class="mode-btn" onclick="startGame('timed')" style="background: linear-gradient(45deg, #ef4444, #dc2626); border: none; color: white; padding: 20px; border-radius: 15px; font-size: 1.2rem; cursor: pointer; transition: transform 0.3s;">
+                    ⚡ Szybka Runda
+                    <div style="font-size: 0.9rem; margin-top: 5px; opacity: 0.9;">30 sekund na jak najwięcej punktów!</div>
+                </button>
+                
+                <button class="mode-btn" onclick="startGame('relaxed')" style="background: linear-gradient(45deg, #10b981, #059669); border: none; color: white; padding: 20px; border-radius: 15px; font-size: 1.2rem; cursor: pointer; transition: transform 0.3s;">
+                    🧘 Tryb Relaks
+                    <div style="font-size: 0.9rem; margin-top: 5px; opacity: 0.9;">Bez limitu czasu, trenuj w spokoju</div>
+                </button>
+            </div>
+            
+            <div style="font-size: 0.9rem; opacity: 0.8;">
+                💡 W obu trybach zbierasz punkty i odblokujesz nowe poziomy!
+            </div>
+        </div>
+        
+        <div class="timer-container" id="timerContainer" style="display: none;">
+            <div class="timer-text">Czas: <span id="timeLeft">30</span>s</div>
+            <div class="timer-bar" id="timerBar" style="width: 100%"></div>
+        </div>
+        
+        <div class="level-info" id="levelInfo" style="display: none;">
+            <span>Poziom: <span id="level">1</span></span>
+            <button onclick="showLevelSelector()" id="changeLevelBtn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 5px 10px; margin-left: 10px; border-radius: 10px; cursor: pointer; font-size: 0.8rem; display: none;">
+                📚 Zmień poziom
+            </button>
+        </div>
+        
+        <div class="stats" id="statsDisplay" style="display: none;">
+            <div class="stat-item">
+                Punkty: <span id="score">0</span>
+                <div id="multiplierDisplay"></div>
+            </div>
+            <div class="stat-item">
+                Streak: <span id="streak">0</span> 🔥
+            </div>
+            <div class="stat-item">
+                Najlepszy: <span id="bestScore">0</span>
+            </div>
+        </div>
+        
+        <div class="equation" id="equation" style="display: none;">5 + 3 = ?</div>
+        
+        <div class="answers" id="answers" style="display: none;">
+            <button class="answer-btn">8</button>
+            <button class="answer-btn">7</button>
+            <button class="answer-btn">9</button>
+            <button class="answer-btn">6</button>
+        </div>
+        
+        <div class="feedback" id="feedback" style="display: none;"></div>
+        
+        <button class="skip-btn" id="skipBtn" onclick="skipQuestion()" disabled style="display: none;">
+            Pomiń pytanie (0 dostępne)
+        </button>
+        
+        <button class="quit-btn" id="quitBtn" onclick="quitGame()" style="display: none;">
+            🚪 Zakończ grę
+        </button>
+
+        <div class="stats-panel" id="statsPanel" style="display: none;">
+            <div class="stats-title">📊 Statystyki</div>
+            <div class="stats-grid">
+                <div>Poprawne odpowiedzi: <span id="correctAnswers">0</span></div>
+                <div>Błędne odpowiedzi: <span id="wrongAnswers">0</span></div>
+                <div>Procent poprawnych: <span id="accuracy">100%</span></div>
+                <div>Średni czas: <span id="avgTime">0s</span></div>
+                <div>Najszybsza odpowiedź: <span id="fastestTime">∞</span></div>
+                <div>Najdłuższy streak: <span id="maxStreak">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let score = 0;
+        let streak = 0;
+        let level = 1;
+        let correctAnswer = 0;
+        let gameActive = false;
+        let timeLeft = 30;
+        let timer = null;
+        let questionStartTime = 0;
+        let pointMultiplier = 1;
+        let multiplierEndTime = 0;
+        let skipsAvailable = 0;
+        let gameMode = null;
+
+        let stats = {
+            correctAnswers: 0,
+            wrongAnswers: 0,
+            totalTime: 0,
+            fastestTime: Infinity,
+            maxStreak: 0,
+            gamesPlayed: 0
+        };
+
+        const levels = [
+            { min: 1, max: 10, operations: ['+', '-'] },
+            { min: 1, max: 50, operations: ['+', '-'] },
+            { min: 1, max: 100, operations: ['+', '-'] },
+            { min: 2, max: 12, operations: ['×'] },
+            { min: 5, max: 20, operations: ['×'] },
+            { min: 2, max: 12, operations: ['÷'] },
+            { min: -20, max: 20, operations: ['+', '-'] },
+            { min: 1, max: 10, operations: ['ułamek'] },
+            { min: 10, max: 99, operations: ['×'] },
+            { min: 100, max: 999, operations: ['+', '-'] },
+            { min: 1, max: 20, operations: ['kwadrat'] },
+            { min: 1, max: 144, operations: ['pierwiastek'] },
+            { min: 2, max: 20, operations: ['potęga'] },
+            { min: -50, max: 50, operations: ['×'] },
+            { min: 10, max: 99, operations: ['÷'] },
+            { min: 1, max: 15, operations: ['mieszane'] },
+            { min: 100, max: 999, operations: ['×'] },
+            { min: 1, max: 20, operations: ['procent'] },
+            { min: 1, max: 100, operations: ['NWD'] },
+            { min: 1000, max: 9999, operations: ['+', '-'] }
+        ];
+
+        function startGame(mode) {
+            gameMode = mode;
+            document.getElementById('modeSelection').style.display = 'none';
+            
+            if (mode === 'relaxed') {
+                showLevelSelector();
+            } else {
+                level = 1;
+                startGameplay();
+            }
+        }
+
+        function startGameplay() {
+            document.getElementById('levelInfo').style.display = 'block';
+            document.getElementById('statsDisplay').style.display = 'grid';
+            document.getElementById('equation').style.display = 'block';
+            document.getElementById('answers').style.display = 'grid';
+            document.getElementById('feedback').style.display = 'flex';
+            document.getElementById('skipBtn').style.display = 'block';
+            document.getElementById('statsPanel').style.display = 'block';
+            document.getElementById('quitBtn').style.display = 'block';
+            
+            if (gameMode === 'relaxed') {
+                document.getElementById('changeLevelBtn').style.display = 'inline-block';
+            }
+            
+            if (gameMode === 'timed') {
+                document.getElementById('timerContainer').style.display = 'block';
+                startTimer();
+            }
+            
+            gameActive = true;
+            newQuestion();
+        }
+
+        function quitGame() {
+            if (confirm('Czy na pewno chcesz zakończyć grę? Twój postęp zostanie zapisany.')) {
+                clearInterval(timer);
+                gameActive = false;
+                saveStats();
+                showGameEndScreen('🚪 Gra zakończona');
+            }
+        }
+
+        function loadStats() {
+            const saved = localStorage.getItem('quickMathStats');
+            if (saved) {
+                stats = { ...stats, ...JSON.parse(saved) };
+            }
+        }
+
+        function saveStats() {
+            localStorage.setItem('quickMathStats', JSON.stringify(stats));
+            const currentBest = parseInt(localStorage.getItem('quickMathBestScore') || '0');
+            if (score > currentBest) {
+                localStorage.setItem('quickMathBestScore', score.toString());
+                document.getElementById('bestScore').textContent = score;
+            }
+        }
+
+        function startTimer() {
+            if (gameMode !== 'timed') return;
+            
+            timeLeft = 30;
+            updateTimerDisplay();
+            
+            timer = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    timeUp();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timeLeft').textContent = timeLeft;
+            const percentage = (timeLeft / 30) * 100;
+            document.getElementById('timerBar').style.width = percentage + '%';
+        }
+
+        function timeUp() {
+            clearInterval(timer);
+            gameActive = false;
+            saveStats();
+            showGameEndScreen('⏰ Czas minął!');
+        }
+
+        function generateEquation() {
+            const currentLevel = levels[Math.min(level - 1, levels.length - 1)];
+            const operation = currentLevel.operations[Math.floor(Math.random() * currentLevel.operations.length)];
+            
+            let num1 = Math.floor(Math.random() * (currentLevel.max - currentLevel.min + 1)) + currentLevel.min;
+            let num2 = Math.floor(Math.random() * (currentLevel.max - currentLevel.min + 1)) + currentLevel.min;
+            
+            let equation, answer;
+            
+            if (operation === 'ułamek') {
+                const denominators = [2, 3, 4, 5, 6, 8, 10];
+                const denom = denominators[Math.floor(Math.random() * denominators.length)];
+                const numerator = Math.floor(Math.random() * denom) + 1;
+                equation = `${numerator}/${denom} = ?`;
+                answer = parseFloat((numerator / denom).toFixed(2));
+            } else if (operation === '÷') {
+                answer = Math.floor(Math.random() * (currentLevel.max - currentLevel.min + 1)) + currentLevel.min;
+                num2 = Math.floor(Math.random() * 10) + 1;
+                num1 = answer * num2;
+                equation = `${num1} ÷ ${num2} = ?`;
+            } else if (operation === 'kwadrat') {
+                equation = `${num1}² = ?`;
+                answer = num1 * num1;
+            } else if (operation === 'pierwiastek') {
+                const squares = [1, 4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144];
+                const square = squares[Math.floor(Math.random() * squares.length)];
+                equation = `√${square} = ?`;
+                answer = Math.sqrt(square);
+            } else if (operation === 'potęga') {
+                const base = Math.floor(Math.random() * 10) + 2;
+                const exp = Math.random() < 0.5 ? 2 : 3;
+                equation = `${base}^${exp} = ?`;
+                answer = Math.pow(base, exp);
+            } else if (operation === 'mieszane') {
+                const ops = ['+', '-', '×', '÷'];
+                const randOp = ops[Math.floor(Math.random() * ops.length)];
+                return generateEquationForOperation(randOp, num1, num2);
+            } else if (operation === 'procent') {
+                const percent = [10, 20, 25, 50, 75];
+                const p = percent[Math.floor(Math.random() * percent.length)];
+                equation = `${p}% z ${num1*10} = ?`;
+                answer = (p / 100) * (num1 * 10);
+            } else if (operation === 'NWD') {
+                num1 = Math.floor(Math.random() * 20) + 10;
+                num2 = Math.floor(Math.random() * 20) + 10;
+                equation = `NWD(${num1}, ${num2}) = ?`;
+                answer = gcd(num1, num2);
+            } else {
+                return generateEquationForOperation(operation, num1, num2);
+            }
+            
+            return { equation, answer };
+        }
+
+        function generateEquationForOperation(operation, num1, num2) {
+            let equation, answer;
+            
+            if (operation === '-' && level < 7 && num1 < num2) {
+                [num1, num2] = [num2, num1];
+            }
+            
+            switch(operation) {
+                case '+':
+                    equation = `${num1} + ${num2} = ?`;
+                    answer = num1 + num2;
+                    break;
+                case '-':
+                    equation = `${num1} - ${num2} = ?`;
+                    answer = num1 - num2;
+                    break;
+                case '×':
+                    equation = `${num1} × ${num2} = ?`;
+                    answer = num1 * num2;
+                    break;
+                case '÷':
+                    answer = Math.floor(Math.random() * 12) + 1;
+                    num1 = answer * num2;
+                    equation = `${num1} ÷ ${num2} = ?`;
+                    break;
+            }
+            
+            return { equation, answer };
+        }
+
+        function gcd(a, b) {
+            while (b !== 0) {
+                let temp = b;
+                b = a % b;
+                a = temp;
+            }
+            return a;
+        }
+
+        function generateAnswers(correct) {
+            const answers = [correct];
+            
+            while(answers.length < 4) {
+                let wrong;
+                
+                if (typeof correct === 'number' && correct % 1 === 0) {
+                    if (Math.random() < 0.5) {
+                        wrong = correct + (Math.floor(Math.random() * 10) - 5);
+                    } else {
+                        wrong = Math.floor(Math.random() * Math.max(correct * 2, 20));
+                    }
+                } else {
+                    wrong = parseFloat((Math.random() * 2).toFixed(2));
+                }
+                
+                if (wrong !== correct && wrong >= (level < 7 ? 0 : -100) && !answers.includes(wrong)) {
+                    answers.push(wrong);
+                }
+            }
+            
+            return answers.sort(() => Math.random() - 0.5);
+        }
+
+        function newQuestion() {
+            if (!gameActive) return;
+            
+            const { equation, answer } = generateEquation();
+            correctAnswer = answer;
+            questionStartTime = Date.now();
+            
+            document.getElementById('equation').textContent = equation;
+            
+            const answers = generateAnswers(answer);
+            const answerButtons = document.querySelectorAll('.answer-btn');
+            
+            answers.forEach((ans, index) => {
+                answerButtons[index].textContent = ans;
+                answerButtons[index].onclick = () => checkAnswer(ans);
+                answerButtons[index].className = 'answer-btn';
+            });
+            
+            document.getElementById('feedback').textContent = '';
+        }
+
+        function checkAnswer(selectedAnswer) {
+            if (!gameActive) return;
+            
+            const responseTime = (Date.now() - questionStartTime) / 1000;
+            gameActive = false;
+            const buttons = document.querySelectorAll('.answer-btn');
+            
+            buttons.forEach(btn => {
+                const value = parseFloat(btn.textContent);
+                if (Math.abs(value - correctAnswer) < 0.01) {
+                    btn.classList.add('correct');
+                    btn.innerHTML = `${btn.textContent} ✓`;
+                } else if (Math.abs(value - selectedAnswer) < 0.01 && Math.abs(value - correctAnswer) >= 0.01) {
+                    btn.classList.add('wrong');
+                    btn.innerHTML = `${btn.textContent} ✗`;
+                }
+            });
+            
+            if (Math.abs(selectedAnswer - correctAnswer) < 0.01) {
+                let points = 10;
+                
+                if (responseTime < 3) points += 5;
+                if (responseTime < 1.5) points += 10;
+                
+                points *= pointMultiplier;
+                
+                score += points;
+                streak++;
+                stats.correctAnswers++;
+                stats.totalTime += responseTime;
+                
+                if (responseTime < stats.fastestTime) {
+                    stats.fastestTime = responseTime;
+                }
+                
+                if (streak > stats.maxStreak) {
+                    stats.maxStreak = streak;
+                }
+                
+                document.getElementById('feedback').textContent = `Świetnie! +${points} pkt 🎉`;
+                
+                createParticles();
+                
+                if (streak === 3) {
+                    timeLeft += 5;
+                    document.getElementById('feedback').textContent = 'Bonus! +5 sekund 🔥';
+                } else if (streak === 5) {
+                    pointMultiplier = 2;
+                    multiplierEndTime = Date.now() + 10000;
+                    document.getElementById('feedback').textContent = 'Podwójne punkty! 🌟';
+                } else if (streak === 10) {
+                    skipsAvailable++;
+                    document.getElementById('feedback').textContent = 'Dodatkowe przejście! ⭐';
+                }
+                
+                if (gameMode === 'timed' && score >= level * 150 && level < levels.length) {
+                    level++;
+                    document.getElementById('feedback').textContent = `Poziom ${level}! 🚀`;
+                }
+            } else {
+                streak = 0;
+                stats.wrongAnswers++;
+                document.getElementById('feedback').textContent = 'Spróbuj ponownie! 💪';
+                document.getElementById('gameContainer').classList.add('shake');
+                setTimeout(() => {
+                    document.getElementById('gameContainer').classList.remove('shake');
+                }, 500);
+            }
+            
+            updateStats();
+            updateMultiplierDisplay();
+            updateSkipButton();
+            
+            setTimeout(() => {
+                gameActive = true;
+                newQuestion();
+            }, 1500);
+        }
+
+        function skipQuestion() {
+            if (skipsAvailable > 0 && gameActive) {
+                skipsAvailable--;
+                updateSkipButton();
+                newQuestion();
+            }
+        }
+
+        function updateSkipButton() {
+            const btn = document.getElementById('skipBtn');
+            btn.textContent = `Pomiń pytanie (${skipsAvailable} dostępne)`;
+            btn.disabled = skipsAvailable === 0;
+        }
+
+        function createParticles() {
+            const container = document.querySelector('.game-container');
+            const rect = container.getBoundingClientRect();
+            
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = (rect.left + rect.width / 2 + (Math.random() - 0.5) * 100) + 'px';
+                particle.style.top = (rect.top + rect.height / 2) + 'px';
+                particle.style.backgroundColor = ['#fbbf24', '#10b981', '#3b82f6', '#8b5cf6'][Math.floor(Math.random() * 4)];
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 2000);
+            }
+        }
+
+        function updateMultiplierDisplay() {
+            const display = document.getElementById('multiplierDisplay');
+            if (Date.now() < multiplierEndTime) {
+                display.innerHTML = `<div class="multiplier">x${pointMultiplier}</div>`;
+            } else {
+                pointMultiplier = 1;
+                display.innerHTML = '';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('streak').textContent = streak;
+            document.getElementById('level').textContent = level;
+            document.getElementById('correctAnswers').textContent = stats.correctAnswers;
+            document.getElementById('wrongAnswers').textContent = stats.wrongAnswers;
+            
+            const total = stats.correctAnswers + stats.wrongAnswers;
+            const accuracy = total > 0 ? Math.round((stats.correctAnswers / total) * 100) : 100;
+            document.getElementById('accuracy').textContent = accuracy + '%';
+            
+            const avgTime = stats.correctAnswers > 0 ? (stats.totalTime / stats.correctAnswers).toFixed(1) : 0;
+            document.getElementById('avgTime').textContent = avgTime + 's';
+            
+            const fastest = stats.fastestTime === Infinity ? '∞' : stats.fastestTime.toFixed(1) + 's';
+            document.getElementById('fastestTime').textContent = fastest;
+            
+            document.getElementById('maxStreak').textContent = stats.maxStreak;
+const bestScore = localStorage.getItem('quickMathBestScore') || '0';
+            document.getElementById('bestScore').textContent = bestScore;
+        }
+
+        function showGameEndScreen(title) {
+            document.getElementById('timerContainer').style.display = 'none';
+            document.getElementById('levelInfo').style.display = 'none';
+            document.getElementById('statsDisplay').style.display = 'none';
+            document.getElementById('equation').style.display = 'none';
+            document.getElementById('answers').style.display = 'none';
+            document.getElementById('feedback').style.display = 'none';
+            document.getElementById('skipBtn').style.display = 'none';
+            document.getElementById('quitBtn').style.display = 'none';
+            document.getElementById('statsPanel').style.display = 'none';
+            
+            const gameOverScreen = `
+                <div style="text-align: center;">
+                    <h2 style="font-size: 2rem; margin-bottom: 20px; color: #fbbf24;">${title}</h2>
+                    
+                    <div style="background: rgba(255, 255, 255, 0.1); border-radius: 15px; padding: 20px; margin-bottom: 30px;">
+                        <div style="font-size: 1.5rem; margin-bottom: 15px;">Twój wynik:</div>
+                        <div style="font-size: 3rem; font-weight: bold; color: #10b981; margin-bottom: 10px;">${score}</div>
+                        <div style="font-size: 1rem; opacity: 0.8;">punktów</div>
+                        
+                        <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                            <div>Poziom osiągnięty: <strong>${level}</strong></div>
+                            <div>Najdłuższy streak: <strong>${streak > stats.maxStreak ? streak : stats.maxStreak}</strong></div>
+                            <div>Poprawne odpowiedzi: <strong>${stats.correctAnswers}</strong></div>
+                            <div>Błędne odpowiedzi: <strong>${stats.wrongAnswers}</strong></div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; gap: 15px;">
+                        <button onclick="location.reload()" style="background: linear-gradient(45deg, #ef4444, #dc2626); border: none; color: white; padding: 15px 30px; border-radius: 15px; font-size: 1.1rem; cursor: pointer; transition: transform 0.3s;">
+                            🔄 Spróbuj jeszcze raz
+                        </button>
+                        
+                        <button onclick="location.reload()" style="background: linear-gradient(45deg, #6366f1, #4f46e5); border: none; color: white; padding: 15px 30px; border-radius: 15px; font-size: 1.1rem; cursor: pointer; transition: transform 0.3s;">
+                            🏠 Powrót do menu
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('gameContainer').innerHTML = `
+                <h1>Quick Math</h1>
+                ${gameOverScreen}
+            `;
+        }
+        
+        function showLevelSelector() {
+            gameActive = false;
+            clearInterval(timer);
+            
+            const levelDescriptions = [
+                "Dodawanie i odejmowanie 1-10",
+                "Dodawanie i odejmowanie 1-50", 
+                "Dodawanie i odejmowanie 1-100",
+                "Mnożenie małe (2×12)",
+                "Mnożenie średnie (5×20)",
+                "Dzielenie proste",
+                "Liczby ujemne",
+                "Ułamki dziesiętne",
+                "Duże mnożenie (10×99)",
+                "Liczby 3-cyfrowe",
+                "Kwadraty (n²)",
+                "Pierwiastki (√n)",
+                "Potęgi (n³)",
+                "Mnożenie z ujemnymi",
+                "Trudne dzielenie",
+                "Wszystkie operacje",
+                "Bardzo duże mnożenie",
+                "Procenty (%)",
+                "NWD - Wspólny dzielnik",
+                "Liczby 4-cyfrowe"
+            ];
+            
+            let levelButtons = '';
+            for (let i = 1; i <= levels.length; i++) {
+                const unlocked = gameMode === 'relaxed' || score >= (i-1) * 150 || i <= level;
+                const buttonStyle = unlocked 
+                    ? 'background: rgba(34, 197, 94, 0.3); border: 1px solid #22c55e; cursor: pointer;'
+                    : 'background: rgba(100, 100, 100, 0.3); border: 1px solid #666; cursor: not-allowed; opacity: 0.5;';
+                
+                const clickHandler = unlocked ? `selectLevel(${i})` : '';
+                
+                levelButtons += `
+                    <button ${unlocked ? `onclick="${clickHandler}"` : ''} 
+                            style="${buttonStyle} color: white; padding: 10px; border-radius: 10px; font-size: 0.9rem; text-align: left;">
+                        <div style="font-weight: bold;">Poziom ${i}</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8;">${levelDescriptions[i-1]}</div>
+                        ${!unlocked ? '<div style="font-size: 0.7rem; color: #fbbf24;">🔒 Wymagane: ' + ((i-1) * 150) + ' pkt</div>' : ''}
+                    </button>
+                `;
+            }
+            
+            const title = gameMode === 'relaxed' ? '🧘 Wybierz poziom do treningu' : '📚 Wybierz poziom';
+            const subtitle = gameMode === 'relaxed' ? 'Wszystkie poziomy dostępne!' : 'Odblokuj nowe poziomy zdobywając punkty';
+            
+            const levelSelector = `
+                <div style="text-align: center;">
+                    <h2 style="margin-bottom: 10px;">${title}</h2>
+                    <p style="opacity: 0.8; margin-bottom: 20px; font-size: 0.9rem;">${subtitle}</p>
+                    
+                    <div style="max-height: 400px; overflow-y: auto; display: grid; gap: 10px; margin-bottom: 20px;">
+                        ${levelButtons}
+                    </div>
+                    
+                    <button onclick="location.reload()" style="background: linear-gradient(45deg, #6366f1, #4f46e5); border: none; color: white; padding: 10px 20px; border-radius: 10px; cursor: pointer;">
+                        ⬅️ Powrót do menu
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('timerContainer').style.display = 'none';
+            document.getElementById('levelInfo').style.display = 'none';
+            document.getElementById('statsDisplay').style.display = 'none';
+            document.getElementById('equation').style.display = 'none';
+            document.getElementById('answers').style.display = 'none';
+            document.getElementById('feedback').style.display = 'none';
+            document.getElementById('skipBtn').style.display = 'none';
+            document.getElementById('quitBtn').style.display = 'none';
+            document.getElementById('statsPanel').style.display = 'none';
+            
+            document.getElementById('gameContainer').innerHTML = `
+                <h1>Quick Math</h1>
+                ${levelSelector}
+            `;
+        }
+        
+        function selectLevel(newLevel) {
+            level = newLevel;
+            if (gameMode === 'relaxed') {
+                localStorage.setItem('quickMathGameMode', 'relaxed');
+                localStorage.setItem('quickMathSelectedLevel', newLevel);
+            }
+            location.reload();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const modeButtons = document.querySelectorAll('.mode-btn');
+            modeButtons.forEach(btn => {
+                btn.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-3px)';
+                });
+                btn.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+
+        loadStats();
+        updateStats();
+
+        const savedMode = localStorage.getItem('quickMathGameMode');
+        const savedLevel = localStorage.getItem('quickMathSelectedLevel');
+
+        if (savedMode && savedLevel) {
+            level = parseInt(savedLevel);
+            gameMode = savedMode;
+            localStorage.removeItem('quickMathGameMode');
+            localStorage.removeItem('quickMathSelectedLevel');
+
+            document.getElementById('modeSelection').style.display = 'none';
+            startGameplay();
+        }
+
+        // Rejestracja Service Worker dla PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker zarejestrowany'))
+                    .catch(err => console.log('Błąd Service Worker:', err));
+            });
+        }
+    </script>
+</body>
+</html>

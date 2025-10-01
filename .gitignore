@@ -1,0 +1,9 @@
+# Plany i dokumentacja (lokalne)
+*.md
+TODO_JUTRO.md
+PLAN_MONETYZACJI.md
+MULTIPLAYER_PLAN.md
+
+# System files
+.DS_Store
+Thumbs.db
