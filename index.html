@@ -346,6 +346,7 @@
             </div>
             <div class="stat-item">
                 Streak: <span id="streak">0</span> 🔥
+                <div id="shieldDisplay"></div>
             </div>
             <div class="stat-item">
                 Najlepszy: <span id="bestScore">0</span>
@@ -396,6 +397,7 @@
         let pointMultiplier = 1;
         let multiplierEndTime = 0;
         let skipsAvailable = 0;
+        let shields = 0; // Tarcze ochronne
         let gameMode = null;
 
         let stats = {
@@ -722,9 +724,10 @@
                     timeLeft = Math.min(timeLeft + 5, 45);
                     document.getElementById('feedback').textContent = 'Bonus! +5 sekund 🔥';
                 } else if (streak === 5) {
+                    shields = Math.min(shields + 1, 2); // Max 2 tarcze
                     pointMultiplier = 2;
                     multiplierEndTime = Date.now() + 10000;
-                    document.getElementById('feedback').textContent = 'Podwójne punkty! 🌟';
+                    document.getElementById('feedback').textContent = 'Tarcza + podwójne punkty! 🛡️🌟';
                 } else if (streak === 10) {
                     skipsAvailable++;
                     document.getElementById('feedback').textContent = 'Dodatkowe przejście! ⭐';
@@ -735,17 +738,36 @@
                     document.getElementById('feedback').textContent = `Poziom ${level}! 🚀`;
                 }
             } else {
-                streak = 0;
-                stats.wrongAnswers++;
-                document.getElementById('feedback').textContent = 'Spróbuj ponownie! 💪';
-                document.getElementById('gameContainer').classList.add('shake');
-                setTimeout(() => {
-                    document.getElementById('gameContainer').classList.remove('shake');
-                }, 500);
+                // Błędna odpowiedź
+
+                // Użyj tarczy jeśli dostępna
+                if (shields > 0) {
+                    shields--;
+                    document.getElementById('feedback').textContent = 'Ochroniona tarcza! 🛡️✨';
+                    // Nie resetuj streak ani nie zabieraj czasu
+                } else {
+                    // Brak tarczy - normalna kara
+                    streak = 0;
+                    stats.wrongAnswers++;
+
+                    // Kara -5s w trybie timed
+                    if (gameMode === 'timed') {
+                        timeLeft = Math.max(timeLeft - 5, 0);
+                        document.getElementById('feedback').textContent = 'Błąd! -5s ⏱️ 💪';
+                    } else {
+                        document.getElementById('feedback').textContent = 'Spróbuj ponownie! 💪';
+                    }
+
+                    document.getElementById('gameContainer').classList.add('shake');
+                    setTimeout(() => {
+                        document.getElementById('gameContainer').classList.remove('shake');
+                    }, 500);
+                }
             }
             
             updateStats();
             updateMultiplierDisplay();
+            updateShieldDisplay();
             updateSkipButton();
             
             setTimeout(() => {
@@ -791,6 +813,16 @@
                 display.innerHTML = `<div class="multiplier">x${pointMultiplier}</div>`;
             } else {
                 pointMultiplier = 1;
+                display.innerHTML = '';
+            }
+        }
+
+        function updateShieldDisplay() {
+            const display = document.getElementById('shieldDisplay');
+            if (shields > 0) {
+                const shieldIcons = '🛡️'.repeat(shields);
+                display.innerHTML = `<div style="color: #10b981; font-size: 0.9rem; margin-top: 3px;">${shieldIcons}</div>`;
+            } else {
                 display.innerHTML = '';
             }
         }
