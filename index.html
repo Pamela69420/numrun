@@ -677,27 +677,44 @@
             
             if (Math.abs(selectedAnswer - correctAnswer) < 0.01) {
                 let points = 10;
-                
-                if (responseTime < 3) points += 5;
-                if (responseTime < 1.5) points += 10;
-                
+                let timeBonus = 2; // Bazowy bonus czasu
+
+                if (responseTime < 3) {
+                    points += 5;
+                    timeBonus = 3; // Szybka odpowiedź
+                }
+                if (responseTime < 1.5) {
+                    points += 10;
+                    timeBonus = 5; // Bardzo szybka odpowiedź
+                }
+
                 points *= pointMultiplier;
-                
+
+                // Dodaj czas tylko w trybie timed
+                if (gameMode === 'timed') {
+                    timeLeft += timeBonus;
+                }
+
                 score += points;
                 streak++;
                 stats.correctAnswers++;
                 stats.totalTime += responseTime;
-                
+
                 if (responseTime < stats.fastestTime) {
                     stats.fastestTime = responseTime;
                 }
-                
+
                 if (streak > stats.maxStreak) {
                     stats.maxStreak = streak;
                 }
-                
-                document.getElementById('feedback').textContent = `Świetnie! +${points} pkt 🎉`;
-                
+
+                // Pokaż bonus czasu w feedback
+                let feedbackText = `Świetnie! +${points} pkt`;
+                if (gameMode === 'timed') {
+                    feedbackText += ` +${timeBonus}s ⏱️`;
+                }
+                document.getElementById('feedback').textContent = feedbackText + ' 🎉';
+
                 createParticles();
                 
                 if (streak === 3) {
