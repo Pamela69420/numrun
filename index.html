@@ -46,7 +46,11 @@
             padding: 40px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             min-width: 400px;
+            max-width: 600px;
+            width: 100%;
             position: relative;
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
         .shake {
@@ -290,28 +294,30 @@
         }
 
         .shield-gain {
-            animation: shieldGain 0.6s ease-out;
+            animation: shieldGain 0.6s ease-out !important;
             will-change: transform, opacity;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
 
         .shield-break {
-            animation: shieldBreak 0.5s ease-out forwards;
+            animation: shieldBreak 0.5s ease-out forwards !important;
             will-change: transform, opacity;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
 
         .shield-active {
-            animation: shieldPulse 2s ease-in-out infinite;
+            animation: shieldPulse 2s ease-in-out infinite !important;
             will-change: transform, filter;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
 
         /* Lepsze wsparcie dla mobile */
-        @media (max-width: 480px) {
-            .shield-icon {
-                transform: translateZ(0);
-                -webkit-transform: translateZ(0);
-                backface-visibility: hidden;
-                -webkit-backface-visibility: hidden;
-            }
+        .shield-icon {
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
         }
 
         .stats-panel {
@@ -1687,18 +1693,20 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
 
         function showAchievementNotification(achievement) {
             const notification = document.createElement('div');
+            notification.className = 'achievement-notification';
             notification.innerHTML = `
-                <div style="position: fixed; top: 20px; right: 20px; background: linear-gradient(45deg, #fbbf24, #f59e0b); color: #000; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000; animation: slideIn 0.5s ease-out; max-width: 300px;">
+                <div style="background: linear-gradient(45deg, #fbbf24, #f59e0b); color: #000; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 300px;">
                     <div style="font-size: 2rem; margin-bottom: 5px;">${achievement.icon}</div>
                     <div style="font-weight: bold; font-size: 1.1rem;">Osiągnięcie odblokowane!</div>
                     <div style="font-size: 0.9rem; margin-top: 5px;">${achievement.name}</div>
                     <div style="font-size: 0.8rem; opacity: 0.8;">${achievement.desc}</div>
                 </div>
             `;
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1000; animation: slideIn 0.5s ease-out;';
             document.body.appendChild(notification);
 
             setTimeout(() => {
-                notification.style.animation = 'slideOut 0.5s ease-in';
+                notification.style.animation = 'fadeOut 0.5s ease-in forwards';
                 setTimeout(() => notification.remove(), 500);
             }, 3000);
         }
@@ -1818,9 +1826,9 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
                 from { transform: translateX(400px); opacity: 0; }
                 to { transform: translateX(0); opacity: 1; }
             }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(400px); opacity: 0; }
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
             }
         `;
         document.head.appendChild(style);
