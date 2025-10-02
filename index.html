@@ -1295,23 +1295,82 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
         function selectLevel(newLevel) {
             level = newLevel;
 
-            // Ukryj selektor poziomu i zacznij grę
-            document.getElementById('timerContainer').style.display = 'none';
-            document.getElementById('levelInfo').style.display = 'none';
-            document.getElementById('statsDisplay').style.display = 'none';
-            document.getElementById('equation').style.display = 'none';
-            document.getElementById('answers').style.display = 'none';
-            document.getElementById('feedback').style.display = 'none';
-            document.getElementById('skipBtn').style.display = 'none';
-            document.getElementById('quitBtn').style.display = 'none';
-            document.getElementById('statsPanel').style.display = 'none';
-
             // Reset gry
             score = 0;
             streak = 0;
             shields = 0;
             skipsAvailable = 0;
             pointMultiplier = 1;
+            multiplierEndTime = 0;
+            gameActive = false;
+
+            // Resetuj statystyki sesji
+            stats.correctAnswers = 0;
+            stats.wrongAnswers = 0;
+            stats.totalTime = 0;
+            stats.fastestTime = Infinity;
+            stats.maxStreak = 0;
+
+            // Odbuduj interfejs gry
+            document.getElementById('gameContainer').innerHTML = `
+                <h1>NumRun</h1>
+                <div class="timer-container" id="timerContainer" style="display: none;">
+                    <div class="timer-text">Czas: <span id="timeLeft">30</span>s</div>
+                    <div class="timer-bar" id="timerBar" style="width: 100%"></div>
+                </div>
+
+                <div class="level-info" id="levelInfo" style="display: none;">
+                    <span>Poziom: <span id="level">1</span></span>
+                    <button onclick="showLevelSelector()" id="changeLevelBtn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 5px 10px; margin-left: 10px; border-radius: 10px; cursor: pointer; font-size: 0.8rem; display: none;">
+                        📚 Zmień poziom
+                    </button>
+                </div>
+
+                <div class="stats" id="statsDisplay" style="display: none;">
+                    <div class="stat-item">
+                        Punkty: <span id="score">0</span>
+                        <div id="multiplierDisplay"></div>
+                    </div>
+                    <div class="stat-item">
+                        Streak: <span id="streak">0</span> 🔥
+                        <div id="shieldDisplay"></div>
+                    </div>
+                    <div class="stat-item">
+                        Najlepszy: <span id="bestScore">0</span>
+                    </div>
+                </div>
+
+                <div class="equation" id="equation" style="display: none;">5 + 3 = ?</div>
+
+                <div class="answers" id="answers" style="display: none;">
+                    <button class="answer-btn">8</button>
+                    <button class="answer-btn">7</button>
+                    <button class="answer-btn">9</button>
+                    <button class="answer-btn">6</button>
+                </div>
+
+                <div class="feedback" id="feedback" style="display: none;"></div>
+
+                <button class="skip-btn" id="skipBtn" onclick="skipQuestion()" disabled style="display: none;">
+                    Pomiń pytanie (0 dostępne)
+                </button>
+
+                <button class="quit-btn" id="quitBtn" onclick="quitGame()" style="display: none;">
+                    🚪 Zakończ grę
+                </button>
+
+                <div class="stats-panel" id="statsPanel" style="display: none;">
+                    <div class="stats-title">📊 Statystyki</div>
+                    <div class="stats-grid">
+                        <div>Poprawne odpowiedzi: <span id="correctAnswers">0</span></div>
+                        <div>Błędne odpowiedzi: <span id="wrongAnswers">0</span></div>
+                        <div>Procent poprawnych: <span id="accuracy">100%</span></div>
+                        <div>Średni czas: <span id="avgTime">0s</span></div>
+                        <div>Najszybsza odpowiedź: <span id="fastestTime">∞</span></div>
+                        <div>Najdłuższy streak: <span id="maxStreak">0</span></div>
+                    </div>
+                </div>
+            `;
 
             startGameplay();
         }
@@ -1504,13 +1563,26 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
             `;
 
             try {
-                const { data, error } = await supabase
+                // Pobierz wszystkie wyniki, posortowane
+                const { data: allScores, error } = await supabase
                     .from('leaderboard')
                     .select('*')
-                    .order('score', { ascending: false })
-                    .limit(10);
+                    .order('score', { ascending: false });
 
                 if (error) throw error;
+
+                // Wybierz tylko najlepszy wynik każdego gracza
+                const topScoresByPlayer = {};
+                allScores?.forEach(entry => {
+                    if (entry.user_id && (!topScoresByPlayer[entry.user_id] || entry.score > topScoresByPlayer[entry.user_id].score)) {
+                        topScoresByPlayer[entry.user_id] = entry;
+                    }
+                });
+
+                // Konwertuj na tablicę i posortuj
+                const data = Object.values(topScoresByPlayer)
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 10);
 
                 let leaderboardHTML = '<div style="text-align: left; max-height: 400px; overflow-y: auto;">';
 
