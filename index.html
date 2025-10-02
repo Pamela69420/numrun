@@ -767,12 +767,67 @@
         }
 
         function quitGame() {
-            if (confirm('Czy na pewno chcesz zakończyć grę? Twój postęp zostanie zapisany.')) {
-                clearInterval(timer);
-                gameActive = false;
-                saveStats();
-                showGameEndScreen('🚪 Gra zakończona');
+            // Pauza gry
+            const wasPaused = !gameActive;
+            gameActive = false;
+
+            // Pokaż modal w grze
+            const modal = document.createElement('div');
+            modal.id = 'quitModal';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; animation: fadeIn 0.3s;';
+            modal.innerHTML = `
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; border-radius: 20px; max-width: 400px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); animation: scaleIn 0.3s;">
+                    <h2 style="font-size: 2rem; margin-bottom: 20px; color: white;">🚪 Zakończ grę?</h2>
+                    <p style="color: rgba(255,255,255,0.9); margin-bottom: 30px; font-size: 1.1rem;">
+                        Twój postęp zostanie zapisany.<br>
+                        Czy na pewno chcesz zakończyć?
+                    </p>
+                    <div style="display: flex; gap: 15px;">
+                        <button onclick="confirmQuit()" style="flex: 1; background: linear-gradient(45deg, #ef4444, #dc2626); border: none; color: white; padding: 15px; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: transform 0.2s;">
+                            Tak, zakończ
+                        </button>
+                        <button onclick="cancelQuit()" style="flex: 1; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); color: white; padding: 15px; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: transform 0.2s;">
+                            Anuluj
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Dodaj style animacji jeśli jeszcze nie ma
+            if (!document.getElementById('modalAnimations')) {
+                const style = document.createElement('style');
+                style.id = 'modalAnimations';
+                style.textContent = `
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    @keyframes scaleIn {
+                        from { transform: scale(0.7); opacity: 0; }
+                        to { transform: scale(1); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
             }
+        }
+
+        function confirmQuit() {
+            const modal = document.getElementById('quitModal');
+            if (modal) modal.remove();
+
+            clearInterval(timer);
+            gameActive = false;
+            saveStats();
+            showGameEndScreen('🚪 Gra zakończona');
+        }
+
+        function cancelQuit() {
+            const modal = document.getElementById('quitModal');
+            if (modal) modal.remove();
+
+            // Wznów grę
+            gameActive = true;
         }
 
         function loadStats() {
