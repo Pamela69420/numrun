@@ -1658,18 +1658,11 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
 
                     <div id="authMessage"></div>
 
-                    <input type="text" id="usernameInput" class="auth-input" placeholder="👤 Nick (3-20 znaków)" maxlength="20">
                     <input type="email" id="emailInput" class="auth-input" placeholder="📧 Email">
-                    <input type="password" id="passwordInput" class="auth-input" placeholder="🔒 Hasło (min. 6 znaków)">
+                    <input type="password" id="passwordInput" class="auth-input" placeholder="🔒 Hasło">
 
-                    <button onclick="handleRegister()" class="auth-btn auth-btn-primary">
-                        ✨ Stwórz konto
-                    </button>
-
-                    <div class="auth-divider">lub</div>
-
-                    <button onclick="showLoginForm()" class="auth-btn auth-btn-secondary">
-                        🔐 Mam już konto - Zaloguj
+                    <button onclick="handleLogin()" class="auth-btn auth-btn-primary">
+                        🚀 Zaloguj się
                     </button>
 
                     <div class="auth-divider">lub</div>
@@ -1681,35 +1674,38 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
                     <p style="text-align: center; opacity: 0.7; font-size: 0.85rem; margin-top: 15px;">
                         Jako gość możesz grać, ale wyniki nie będą zapisywane w rankingu
                     </p>
+
+                    <div style="text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                        <p style="opacity: 0.8; margin-bottom: 10px;">Nie masz jeszcze konta?</p>
+                        <button onclick="showRegisterForm()" class="auth-btn auth-btn-secondary">
+                            ✨ Zarejestruj się
+                        </button>
+                    </div>
                 </div>
             `;
         }
 
-        function showLoginForm() {
+        function showRegisterForm() {
             document.getElementById('authScreen').innerHTML = `
                 <div class="auth-container">
-                    <h2 style="text-align: center; margin-bottom: 30px;">🔐 Logowanie</h2>
+                    <h2 style="text-align: center; margin-bottom: 30px;">✨ Rejestracja</h2>
 
                     <div id="authMessage"></div>
 
+                    <input type="text" id="usernameInput" class="auth-input" placeholder="👤 Nick (3-20 znaków)" maxlength="20">
                     <input type="email" id="emailInput" class="auth-input" placeholder="📧 Email">
-                    <input type="password" id="passwordInput" class="auth-input" placeholder="🔒 Hasło">
+                    <input type="password" id="passwordInput" class="auth-input" placeholder="🔒 Hasło (min. 6 znaków)">
 
-                    <button onclick="handleLogin()" class="auth-btn auth-btn-primary">
-                        🚀 Zaloguj się
+                    <button onclick="handleRegister()" class="auth-btn auth-btn-primary">
+                        ✨ Stwórz konto
                     </button>
 
-                    <div class="auth-divider">lub</div>
-
-                    <button onclick="showLoginScreen()" class="auth-btn auth-btn-secondary">
-                        ✨ Stwórz nowe konto
-                    </button>
-
-                    <div class="auth-divider">lub</div>
-
-                    <button onclick="playAsGuest()" class="auth-btn auth-btn-secondary">
-                        👻 Zagraj jako gość
-                    </button>
+                    <div style="text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                        <p style="opacity: 0.8; margin-bottom: 10px;">Masz już konto?</p>
+                        <button onclick="showLoginScreen()" class="auth-btn auth-btn-secondary">
+                            🔐 Zaloguj się
+                        </button>
+                    </div>
                 </div>
             `;
         }
