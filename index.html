@@ -1317,6 +1317,12 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
                 return;
             }
 
+            // Goście nie zapisują wyników w rankingu
+            if (currentUser.isGuest) {
+                console.log('Guest mode - score not saved to leaderboard');
+                return;
+            }
+
             try {
                 const { data, error } = await supabase
                     .from('leaderboard')
@@ -1665,6 +1671,16 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
                     <button onclick="showLoginForm()" class="auth-btn auth-btn-secondary">
                         🔐 Mam już konto - Zaloguj
                     </button>
+
+                    <div class="auth-divider">lub</div>
+
+                    <button onclick="playAsGuest()" class="auth-btn auth-btn-secondary">
+                        👻 Zagraj jako gość
+                    </button>
+
+                    <p style="text-align: center; opacity: 0.7; font-size: 0.85rem; margin-top: 15px;">
+                        Jako gość możesz grać, ale wyniki nie będą zapisywane w rankingu
+                    </p>
                 </div>
             `;
         }
@@ -1688,8 +1704,25 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
                     <button onclick="showLoginScreen()" class="auth-btn auth-btn-secondary">
                         ✨ Stwórz nowe konto
                     </button>
+
+                    <div class="auth-divider">lub</div>
+
+                    <button onclick="playAsGuest()" class="auth-btn auth-btn-secondary">
+                        👻 Zagraj jako gość
+                    </button>
                 </div>
             `;
+        }
+
+        function playAsGuest() {
+            currentUser = {
+                id: 'guest',
+                username: 'Gość',
+                email: null,
+                isGuest: true
+            };
+            localStorage.setItem('playerName', 'Gość');
+            showMainMenu();
         }
 
         async function handleRegister() {
@@ -1739,7 +1772,14 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
                     }
                 });
 
-                if (error) throw error;
+                if (error) {
+                    if (error.message.includes('already registered')) {
+                        messageDiv.innerHTML = '<div class="auth-error">❌ Ten email jest już zarejestrowany.</div>';
+                    } else {
+                        messageDiv.innerHTML = '<div class="auth-error">❌ ' + error.message + '</div>';
+                    }
+                    return;
+                }
 
                 // Zapisz użytkownika w tabeli users
                 const { error: insertError } = await supabase
@@ -1750,7 +1790,20 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
                         email: email
                     }]);
 
-                if (insertError) throw insertError;
+                if (insertError) {
+                    console.error('Insert error:', insertError);
+                    // Jeśli to błąd unikalności nicku
+                    if (insertError.message.includes('duplicate') || insertError.message.includes('unique')) {
+                        messageDiv.innerHTML = '<div class="auth-error">❌ Ten nick jest już zajęty. Wybierz inny.</div>';
+                        // Usuń konto auth które właśnie stworzyliśmy
+                        await supabase.auth.signOut();
+                    } else if (insertError.message.includes('row-level security')) {
+                        messageDiv.innerHTML = '<div class="auth-error">❌ Błąd uprawnień. Sprawdź konfigurację bazy danych.</div>';
+                    } else {
+                        messageDiv.innerHTML = '<div class="auth-error">❌ ' + insertError.message + '</div>';
+                    }
+                    return;
+                }
 
                 messageDiv.innerHTML = '<div class="auth-success">✅ Konto utworzone! Zalogowano...</div>';
                 currentUser = { id: data.user.id, username: username, email: email };
@@ -1825,7 +1878,33 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
         async function showProfile() {
             if (!currentUser) return;
 
-            // Pobierz statystyki użytkownika
+            // Tryb gościa
+            if (currentUser.isGuest) {
+                document.getElementById('gameContainer').innerHTML = `
+                    <h1>NumRun</h1>
+                    <h2 style="margin-bottom: 30px;">👻 Tryb Gościa</h2>
+
+                    <div class="profile-avatar">👻</div>
+                    <h3 style="text-align: center; margin-bottom: 30px; font-size: 1.5rem;">Gość</h3>
+
+                    <div style="background: rgba(251, 191, 36, 0.2); border: 1px solid rgba(251, 191, 36, 0.5); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                        <p style="margin-bottom: 15px;">⚠️ Grasz jako gość</p>
+                        <p style="font-size: 0.9rem; opacity: 0.8;">Twoje wyniki nie są zapisywane w globalnym rankingu.</p>
+                        <p style="font-size: 0.9rem; opacity: 0.8;">Stwórz konto aby zapisywać postępy!</p>
+                    </div>
+
+                    <button onclick="handleLogout()" style="background: linear-gradient(45deg, #10b981, #059669); border: none; color: white; padding: 15px 30px; border-radius: 15px; width: 100%; margin-bottom: 10px; cursor: pointer; font-size: 1rem;">
+                        ✨ Stwórz konto
+                    </button>
+
+                    <button onclick="location.reload()" style="background: linear-gradient(45deg, #6366f1, #4f46e5); border: none; color: white; padding: 15px 30px; border-radius: 15px; width: 100%; cursor: pointer; font-size: 1rem;">
+                        ⬅️ Powrót do menu
+                    </button>
+                `;
+                return;
+            }
+
+            // Zalogowany użytkownik - pobierz statystyki
             const { data: userGames, error } = await supabase
                 .from('leaderboard')
                 .select('*')
