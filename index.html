@@ -16,6 +16,10 @@
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         * {
             margin: 0;
@@ -506,6 +510,11 @@
     </div>
 
     <script>
+        // ============ SUPABASE CONFIG ============
+        const SUPABASE_URL = 'https://fdwzrxmbktkrztlapxfn.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkd3pyeG1ia3Rrcnp0bGFweGZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODUxODcsImV4cCI6MjA3NDk2MTE4N30.lQmCfEOuTDjkA6m8U_uhaICxCF0_648Mjt3l6h--3qA';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         let score = 0;
         let streak = 0;
         let level = 1;
@@ -1156,11 +1165,41 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
             startGameplay();
         }
 
-        // ============ RANKING GLOBALNY ============
-        function saveToLeaderboard(playerScore, mode) {
-            const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-            const playerName = localStorage.getItem('playerName') || 'Gracz';
+        // ============ RANKING GLOBALNY (SUPABASE) ============
+        async function saveToLeaderboard(playerScore, mode) {
+            let playerName = localStorage.getItem('playerName');
 
+            // Jeśli nie ma nicku, zapytaj o niego
+            if (!playerName) {
+                playerName = await askForPlayerName();
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('leaderboard')
+                    .insert([
+                        {
+                            player_name: playerName,
+                            score: playerScore,
+                            game_mode: mode,
+                            level: level,
+                            created_at: new Date().toISOString()
+                        }
+                    ]);
+
+                if (error) {
+                    console.error('Error saving to leaderboard:', error);
+                    // Fallback do lokalnego zapisu
+                    saveToLocalLeaderboard(playerScore, mode, playerName);
+                }
+            } catch (err) {
+                console.error('Supabase error:', err);
+                saveToLocalLeaderboard(playerScore, mode, playerName);
+            }
+        }
+
+        function saveToLocalLeaderboard(playerScore, mode, playerName) {
+            const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
             leaderboard.push({
                 name: playerName,
                 score: playerScore,
@@ -1168,50 +1207,99 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
                 level: level,
                 date: new Date().toISOString()
             });
-
-            // Sortuj i zachowaj top 100
             leaderboard.sort((a, b) => b.score - a.score);
             localStorage.setItem('leaderboard', JSON.stringify(leaderboard.slice(0, 100)));
         }
 
-        function showLeaderboard() {
-            const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-            const top10 = leaderboard.slice(0, 10);
+        async function askForPlayerName() {
+            const name = prompt('🎮 Podaj swój nick (będzie widoczny w rankingu):', 'Gracz');
+            const playerName = name && name.trim() ? name.trim().substring(0, 20) : 'Gracz';
+            localStorage.setItem('playerName', playerName);
+            return playerName;
+        }
 
-            let leaderboardHTML = '<div style="text-align: left; max-height: 400px; overflow-y: auto;">';
-
-            if (top10.length === 0) {
-                leaderboardHTML += '<p style="text-align: center; opacity: 0.7;">Brak wyników. Zagraj pierwszą grę!</p>';
-            } else {
-                top10.forEach((entry, index) => {
-                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-                    const modeIcon = entry.mode === 'timed' ? '⚡' : entry.mode === 'daily' ? '🌟' : '🧘';
-
-                    leaderboardHTML += `
-                        <div style="background: rgba(255,255,255,0.1); padding: 15px; margin-bottom: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <span style="font-size: 1.5rem; margin-right: 10px;">${medal}</span>
-                                <strong>${entry.name}</strong>
-                                <span style="opacity: 0.7; margin-left: 10px;">${modeIcon} Lvl ${entry.level}</span>
-                            </div>
-                            <div style="font-size: 1.3rem; font-weight: bold; color: #10b981;">
-                                ${entry.score}
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-
-            leaderboardHTML += '</div>';
-
+        async function showLeaderboard() {
             document.getElementById('gameContainer').innerHTML = `
                 <h1>NumRun</h1>
-                <h2 style="margin-bottom: 30px;">🏆 Ranking Top 10</h2>
-                ${leaderboardHTML}
+                <h2 style="margin-bottom: 20px;">🏆 Ranking Top 10</h2>
+                <div style="text-align: center; opacity: 0.7; margin-bottom: 20px;">
+                    <div class="loading">Ładowanie rankingu...</div>
+                </div>
                 <button onclick="location.reload()" style="background: linear-gradient(45deg, #6366f1, #4f46e5); border: none; color: white; padding: 15px 30px; border-radius: 15px; margin-top: 20px; cursor: pointer; font-size: 1rem;">
                     ⬅️ Powrót do menu
                 </button>
             `;
+
+            try {
+                const { data, error } = await supabase
+                    .from('leaderboard')
+                    .select('*')
+                    .order('score', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+
+                let leaderboardHTML = '<div style="text-align: left; max-height: 400px; overflow-y: auto;">';
+
+                if (!data || data.length === 0) {
+                    leaderboardHTML += '<p style="text-align: center; opacity: 0.7;">Brak wyników. Zagraj pierwszą grę!</p>';
+                } else {
+                    data.forEach((entry, index) => {
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                        const modeIcon = entry.game_mode === 'timed' ? '⚡' : entry.game_mode === 'daily' ? '🌟' : '🧘';
+
+                        leaderboardHTML += `
+                            <div style="background: rgba(255,255,255,0.1); padding: 15px; margin-bottom: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="font-size: 1.5rem; margin-right: 10px;">${medal}</span>
+                                    <strong>${entry.player_name}</strong>
+                                    <span style="opacity: 0.7; margin-left: 10px;">${modeIcon} Lvl ${entry.level}</span>
+                                </div>
+                                <div style="font-size: 1.3rem; font-weight: bold; color: #10b981;">
+                                    ${entry.score}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                leaderboardHTML += '</div>';
+
+                const playerName = localStorage.getItem('playerName') || 'Gracz';
+
+                document.getElementById('gameContainer').innerHTML = `
+                    <h1>NumRun</h1>
+                    <h2 style="margin-bottom: 10px;">🏆 Globalny Ranking</h2>
+                    <div style="margin-bottom: 20px;">
+                        <span style="opacity: 0.8;">Grasz jako: <strong>${playerName}</strong></span>
+                        <button onclick="changePlayerName()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 5px 10px; margin-left: 10px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
+                            ✏️ Zmień nick
+                        </button>
+                    </div>
+                    ${leaderboardHTML}
+                    <button onclick="location.reload()" style="background: linear-gradient(45deg, #6366f1, #4f46e5); border: none; color: white; padding: 15px 30px; border-radius: 15px; margin-top: 20px; cursor: pointer; font-size: 1rem;">
+                        ⬅️ Powrót do menu
+                    </button>
+                `;
+            } catch (err) {
+                console.error('Error loading leaderboard:', err);
+                document.getElementById('gameContainer').innerHTML = `
+                    <h1>NumRun</h1>
+                    <h2 style="margin-bottom: 30px;">🏆 Ranking</h2>
+                    <p style="text-align: center; opacity: 0.7; margin-bottom: 20px;">
+                        ❌ Nie można załadować rankingu.<br>
+                        Sprawdź połączenie z internetem.
+                    </p>
+                    <button onclick="location.reload()" style="background: linear-gradient(45deg, #6366f1, #4f46e5); border: none; color: white; padding: 15px 30px; border-radius: 15px; margin-top: 20px; cursor: pointer; font-size: 1rem;">
+                        ⬅️ Powrót do menu
+                    </button>
+                `;
+            }
+        }
+
+        async function changePlayerName() {
+            const newName = await askForPlayerName();
+            showLeaderboard();
         }
 
         // ============ OSIĄGNIĘCIA ============
