@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Setup Achievements Table</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Setup Achievements Table</h1>
+    <button onclick="setupTable()">Create Table</button>
+    <pre id="result"></pre>
+
+    <script>
+        const SUPABASE_URL = 'https://fdwzrxmbktkrztlapxfn.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkd3pyeG1ia3Rrcnp0bGFweGZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5MjIwNjIsImV4cCI6MjA1MzQ5ODA2Mn0.gWPQQXS3v-fR7YXCpkk6rU1PkqOAWLJv4u_RV3Pz2XE';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function setupTable() {
+            const result = document.getElementById('result');
+
+            // SQL do utworzenia tabeli achievements
+            const sql = `
+                -- Tabela osiągnięć użytkowników
+                CREATE TABLE IF NOT EXISTS user_achievements (
+                    id SERIAL PRIMARY KEY,
+                    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+                    achievement_id TEXT NOT NULL,
+                    unlocked_at TIMESTAMP DEFAULT NOW(),
+                    UNIQUE(user_id, achievement_id)
+                );
+
+                -- Index dla szybszego wyszukiwania
+                CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id);
+
+                -- RLS policies
+                ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
+
+                -- Każdy może odczytać swoje osiągnięcia
+                CREATE POLICY "Users can read own achievements" ON user_achievements
+                    FOR SELECT USING (auth.uid() = user_id);
+
+                -- Każdy może dodawać swoje osiągnięcia
+                CREATE POLICY "Users can insert own achievements" ON user_achievements
+                    FOR INSERT WITH CHECK (auth.uid() = user_id);
+            `;
+
+            result.textContent = 'Executing SQL...\n\n' + sql;
+
+            try {
+                const { data, error } = await supabase.rpc('exec_sql', { sql_query: sql });
+
+                if (error) {
+                    result.textContent += '\n\nError: ' + JSON.stringify(error, null, 2);
+                    result.textContent += '\n\nMusisz wykonać ten SQL ręcznie w Supabase SQL Editor:';
+                    result.textContent += '\n\n' + sql;
+                } else {
+                    result.textContent += '\n\nSuccess! Table created.';
+                }
+            } catch (err) {
+                result.textContent += '\n\nMusisz wykonać ten SQL ręcznie w Supabase SQL Editor:\n\n' + sql;
+            }
+        }
+    </script>
+</body>
+</html>

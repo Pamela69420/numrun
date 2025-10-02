@@ -744,23 +744,66 @@
             }}
         ];
 
-        function checkAchievements() {
-            const unlockedAchievements = JSON.parse(localStorage.getItem('achievements') || '[]');
-            const newlyUnlocked = [];
+        async function checkAchievements() {
+            // Dla gości używamy localStorage
+            if (!currentUser) {
+                const unlockedAchievements = JSON.parse(localStorage.getItem('achievements') || '[]');
+                const newlyUnlocked = [];
 
-            achievements.forEach(achievement => {
-                if (!unlockedAchievements.includes(achievement.id) && achievement.check()) {
-                    unlockedAchievements.push(achievement.id);
-                    newlyUnlocked.push(achievement);
-                }
-            });
-
-            if (newlyUnlocked.length > 0) {
-                localStorage.setItem('achievements', JSON.stringify(unlockedAchievements));
-                // Pokaż notyfikację o nowym osiągnięciu
-                newlyUnlocked.forEach(ach => {
-                    showAchievementNotification(ach);
+                achievements.forEach(achievement => {
+                    if (!unlockedAchievements.includes(achievement.id) && achievement.check()) {
+                        unlockedAchievements.push(achievement.id);
+                        newlyUnlocked.push(achievement);
+                    }
                 });
+
+                if (newlyUnlocked.length > 0) {
+                    localStorage.setItem('achievements', JSON.stringify(unlockedAchievements));
+                    newlyUnlocked.forEach(ach => {
+                        showAchievementNotification(ach);
+                    });
+                }
+                return;
+            }
+
+            // Dla zalogowanych - pobierz z bazy danych
+            try {
+                const { data: userAchievements, error } = await supabase
+                    .from('user_achievements')
+                    .select('achievement_id')
+                    .eq('user_id', currentUser.id);
+
+                if (error) {
+                    console.error('Error fetching achievements:', error);
+                    return;
+                }
+
+                const unlockedIds = userAchievements?.map(a => a.achievement_id) || [];
+                const newlyUnlocked = [];
+
+                for (const achievement of achievements) {
+                    if (!unlockedIds.includes(achievement.id) && achievement.check()) {
+                        // Zapisz nowe osiągnięcie do bazy
+                        const { error: insertError } = await supabase
+                            .from('user_achievements')
+                            .insert({
+                                user_id: currentUser.id,
+                                achievement_id: achievement.id
+                            });
+
+                        if (!insertError) {
+                            newlyUnlocked.push(achievement);
+                        }
+                    }
+                }
+
+                if (newlyUnlocked.length > 0) {
+                    newlyUnlocked.forEach(ach => {
+                        showAchievementNotification(ach);
+                    });
+                }
+            } catch (err) {
+                console.error('Error checking achievements:', err);
             }
         }
 
@@ -1769,8 +1812,22 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
             showLeaderboard();
         }
 
-        function showAchievements() {
-            const unlockedAchievements = JSON.parse(localStorage.getItem('achievements') || '[]');
+        async function showAchievements() {
+            let unlockedAchievements = [];
+
+            // Pobierz osiągnięcia z właściwego źródła
+            if (currentUser) {
+                const { data, error } = await supabase
+                    .from('user_achievements')
+                    .select('achievement_id')
+                    .eq('user_id', currentUser.id);
+
+                if (!error && data) {
+                    unlockedAchievements = data.map(a => a.achievement_id);
+                }
+            } else {
+                unlockedAchievements = JSON.parse(localStorage.getItem('achievements') || '[]');
+            }
 
             let achievementsHTML = '<div style="display: grid; gap: 10px; max-height: 400px; overflow-y: auto;">';
 
