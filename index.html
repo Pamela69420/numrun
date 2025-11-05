@@ -2439,7 +2439,22 @@
         }
 
         // Uruchom sprawdzanie auth przy załadowaniu strony
-        checkAuth();
+        // Poczekaj aż Supabase się załaduje z CDN
+        function initApp() {
+            if (typeof window.supabase === 'undefined') {
+                console.log('Czekam na załadowanie Supabase...');
+                setTimeout(initApp, 100);
+                return;
+            }
+            checkAuth();
+        }
+
+        // Uruchom gdy DOM i wszystkie skrypty będą gotowe
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
     </script>
 </body>
 </html>
