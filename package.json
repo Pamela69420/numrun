@@ -1,0 +1,28 @@
+{
+  "name": "numrun",
+  "version": "1.0.0",
+  "description": "NumRun - Gra matematyczna",
+  "main": "index.html",
+  "scripts": {
+    "init": "npm install @capacitor/core @capacitor/cli @capacitor/android",
+    "capacitor:init": "npx cap init",
+    "capacitor:add-android": "npx cap add android",
+    "capacitor:sync": "npx cap sync",
+    "capacitor:open": "npx cap open android",
+    "build:apk": "npm run capacitor:sync && cd android && ./gradlew assembleDebug",
+    "build:release": "npm run capacitor:sync && cd android && ./gradlew assembleRelease"
+  },
+  "keywords": [
+    "game",
+    "math",
+    "education",
+    "pwa"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  }
+}
