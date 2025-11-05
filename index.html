@@ -566,7 +566,7 @@
     </style>
 </head>
 <body>
-    <div class="game-container" id="gameContainer">
+    <div class="game-container" id="gameContainer" role="main" aria-label="Gra matematyczna NumRun">
         <h1>NumRun</h1>
         
         <!-- Auth Screen -->
@@ -639,13 +639,13 @@
             </div>
         </div>
         
-        <div class="equation" id="equation" style="display: none;">5 + 3 = ?</div>
-        
-        <div class="answers" id="answers" style="display: none;">
-            <button class="answer-btn">8</button>
-            <button class="answer-btn">7</button>
-            <button class="answer-btn">9</button>
-            <button class="answer-btn">6</button>
+        <div class="equation" id="equation" role="status" aria-live="polite" style="display: none;">5 + 3 = ?</div>
+
+        <div class="answers" id="answers" role="group" aria-label="Możliwe odpowiedzi" style="display: none;">
+            <button class="answer-btn" aria-label="Odpowiedź A">8</button>
+            <button class="answer-btn" aria-label="Odpowiedź B">7</button>
+            <button class="answer-btn" aria-label="Odpowiedź C">9</button>
+            <button class="answer-btn" aria-label="Odpowiedź D">6</button>
         </div>
         
         <div class="feedback" id="feedback" style="display: none;"></div>
@@ -676,6 +676,17 @@
         const SUPABASE_URL = 'https://fdwzrxmbktkrztlapxfn.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkd3pyeG1ia3Rrcnp0bGFweGZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODUxODcsImV4cCI6MjA3NDk2MTE4N30.lQmCfEOuTDjkA6m8U_uhaICxCF0_648Mjt3l6h--3qA';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ============ ERROR HANDLING ============
+        async function handleAsyncError(asyncFunction, fallbackMessage = 'Wystąpił błąd') {
+            try {
+                return await asyncFunction();
+            } catch (error) {
+                console.error('Error:', error);
+                await showCustomAlert('❌ Błąd', fallbackMessage);
+                return null;
+            }
+        }
 
         // ============ USER SESSION ============
         let currentUser = null;
@@ -872,6 +883,12 @@
             const wasPaused = !gameActive;
             gameActive = false;
 
+            // Wyczyść timer jeśli istnieje
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+
             // Pokaż modal w grze
             const modal = document.createElement('div');
             modal.id = 'quitModal';
@@ -917,8 +934,12 @@
             const modal = document.getElementById('quitModal');
             if (modal) modal.remove();
 
-            clearInterval(timer);
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
             gameActive = false;
+            cleanupParticles();
             saveStats();
             showGameEndScreen('🚪 Gra zakończona');
         }
@@ -949,10 +970,16 @@
 
         function startTimer() {
             if (gameMode !== 'timed') return;
-            
+
+            // Wyczyść poprzedni timer jeśli istnieje
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+
             timeLeft = 30;
             updateTimerDisplay();
-            
+
             timer = setInterval(() => {
                 timeLeft--;
                 updateTimerDisplay();
@@ -971,8 +998,12 @@
         }
 
         function timeUp() {
-            clearInterval(timer);
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
             gameActive = false;
+            cleanupParticles();
             saveStats();
             showGameEndScreen('⏰ Czas minął!');
         }
@@ -1253,21 +1284,112 @@
             btn.disabled = skipsAvailable === 0;
         }
 
+        // ============ CUSTOM MODALS ============
+        function showCustomPrompt(title, message, defaultValue = '') {
+            return new Promise((resolve) => {
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; animation: fadeIn 0.3s;';
+                modal.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; border-radius: 20px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); animation: scaleIn 0.3s;">
+                        <h2 style="font-size: 1.8rem; margin-bottom: 15px; color: white;">${title}</h2>
+                        <p style="color: rgba(255,255,255,0.9); margin-bottom: 20px;">${message}</p>
+                        <input type="text" id="customPromptInput" value="${defaultValue}" style="width: 100%; padding: 15px; margin-bottom: 20px; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3); border-radius: 10px; color: white; font-size: 1rem;" placeholder="Wpisz tutaj...">
+                        <div style="display: flex; gap: 15px;">
+                            <button id="promptOk" style="flex: 1; background: linear-gradient(45deg, #10b981, #059669); border: none; color: white; padding: 15px; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer;">
+                                OK
+                            </button>
+                            <button id="promptCancel" style="flex: 1; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); color: white; padding: 15px; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer;">
+                                Anuluj
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                const input = modal.querySelector('#customPromptInput');
+                const okBtn = modal.querySelector('#promptOk');
+                const cancelBtn = modal.querySelector('#promptCancel');
+
+                input.focus();
+                input.select();
+
+                const cleanup = (value) => {
+                    modal.remove();
+                    resolve(value);
+                };
+
+                okBtn.onclick = () => cleanup(input.value.trim());
+                cancelBtn.onclick = () => cleanup(null);
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') cleanup(input.value.trim());
+                    if (e.key === 'Escape') cleanup(null);
+                });
+            });
+        }
+
+        function showCustomAlert(title, message) {
+            return new Promise((resolve) => {
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; animation: fadeIn 0.3s;';
+                modal.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; border-radius: 20px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); animation: scaleIn 0.3s;">
+                        <h2 style="font-size: 1.8rem; margin-bottom: 15px; color: white;">${title}</h2>
+                        <p style="color: rgba(255,255,255,0.9); margin-bottom: 30px; white-space: pre-line; line-height: 1.6;">${message}</p>
+                        <button id="alertOk" style="width: 100%; background: linear-gradient(45deg, #10b981, #059669); border: none; color: white; padding: 15px; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer;">
+                            OK
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                const okBtn = modal.querySelector('#alertOk');
+                okBtn.onclick = () => {
+                    modal.remove();
+                    resolve();
+                };
+            });
+        }
+
+        // Tracking particles dla cleanup
+        let activeParticles = [];
+
         function createParticles() {
             const container = document.querySelector('.game-container');
+            if (!container) return;
+
             const rect = container.getBoundingClientRect();
-            
+            const fragment = document.createDocumentFragment();
+            const colors = ['#fbbf24', '#10b981', '#3b82f6', '#8b5cf6'];
+
             for (let i = 0; i < 8; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'particle';
                 particle.style.left = (rect.left + rect.width / 2 + (Math.random() - 0.5) * 100) + 'px';
                 particle.style.top = (rect.top + rect.height / 2) + 'px';
-                particle.style.backgroundColor = ['#fbbf24', '#10b981', '#3b82f6', '#8b5cf6'][Math.floor(Math.random() * 4)];
-                
-                document.body.appendChild(particle);
-                
-                setTimeout(() => particle.remove(), 2000);
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+                fragment.appendChild(particle);
+                activeParticles.push(particle);
+
+                // Auto-cleanup po animacji
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.remove();
+                    }
+                    activeParticles = activeParticles.filter(p => p !== particle);
+                }, 2000);
             }
+
+            document.body.appendChild(fragment);
+        }
+
+        function cleanupParticles() {
+            activeParticles.forEach(particle => {
+                if (particle.parentNode) {
+                    particle.remove();
+                }
+            });
+            activeParticles = [];
         }
 
         function updateMultiplierDisplay() {
@@ -1327,7 +1449,7 @@
             document.getElementById('fastestTime').textContent = fastest;
             
             document.getElementById('maxStreak').textContent = stats.maxStreak;
-const bestScore = localStorage.getItem('quickMathBestScore') || '0';
+            const bestScore = localStorage.getItem('quickMathBestScore') || '0';
             document.getElementById('bestScore').textContent = bestScore;
         }
 
@@ -1379,7 +1501,10 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
         
         function showLevelSelector() {
             gameActive = false;
-            clearInterval(timer);
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
             
             const levelDescriptions = [
                 "Dodawanie i odejmowanie 1-10",
@@ -1673,7 +1798,7 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
                 return;
             }
 
-            try {
+            return await handleAsyncError(async () => {
                 const { data, error } = await supabase
                     .from('leaderboard')
                     .insert([
@@ -1689,10 +1814,10 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
 
                 if (error) {
                     console.error('Error saving to leaderboard:', error);
+                    // Nie pokazuj użytkownikowi błędu - zapisz tylko lokalnie
                 }
-            } catch (err) {
-                console.error('Supabase error:', err);
-            }
+                return data;
+            }, 'Nie udało się zapisać wyniku do rankingu (wynik zapisany lokalnie)');
         }
 
         function saveToLocalLeaderboard(playerScore, mode, playerName) {
@@ -1709,7 +1834,11 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
         }
 
         async function askForPlayerName() {
-            const name = prompt('🎮 Podaj swój nick (będzie widoczny w rankingu):', 'Gracz');
+            const name = await showCustomPrompt(
+                '🎮 Witaj!',
+                'Podaj swój nick (będzie widoczny w rankingu):',
+                'Gracz'
+            );
             const playerName = name && name.trim() ? name.trim().substring(0, 20) : 'Gracz';
             localStorage.setItem('playerName', playerName);
             return playerName;
@@ -1866,6 +1995,11 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
         }
 
         // ============ DAILY CHALLENGE ============
+        function seededRandom(seed) {
+            const x = Math.sin(seed) * 10000;
+            return x - Math.floor(x);
+        }
+
         function getDailyChallenge() {
             const today = new Date().toDateString();
             const savedDaily = JSON.parse(localStorage.getItem('dailyChallenge') || '{}');
@@ -1874,15 +2008,13 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
                 return savedDaily;
             }
 
-            // Generuj nowe daily challenge
-            const seed = new Date().getDate() + new Date().getMonth() * 31 + new Date().getFullYear() * 365;
-            Math.seedrandom = function(seed) {
-                const x = Math.sin(seed++) * 10000;
-                return x - Math.floor(x);
-            };
+            // Generuj nowe daily challenge z deterministycznym seedem
+            const now = new Date();
+            const seed = now.getDate() + now.getMonth() * 31 + now.getFullYear() * 365;
 
-            const challengeLevel = (seed % 20) + 1;
-            const targetScore = [100, 200, 300, 400, 500][seed % 5];
+            const challengeLevel = Math.floor(seededRandom(seed) * 20) + 1;
+            const targetScores = [100, 200, 300, 400, 500];
+            const targetScore = targetScores[Math.floor(seededRandom(seed + 1) * targetScores.length)];
 
             const newDaily = {
                 date: today,
@@ -1919,18 +2051,21 @@ const bestScore = localStorage.getItem('quickMathBestScore') || '0';
 
         // Aktualizuj funkcję startGame
         const originalStartGame = startGame;
-        startGame = function(mode) {
+        startGame = async function(mode) {
             if (mode === 'daily') {
                 const daily = getDailyChallenge();
                 level = daily.level;
                 gameMode = 'timed';
 
-                alert(`🌟 Daily Challenge\n\nPoziom: ${daily.level}\nCel: ${daily.targetScore} pkt\nPróby dzisiaj: ${daily.attempts}\n\nPowodzenia!`);
+                await showCustomAlert(
+                    '🌟 Daily Challenge',
+                    `Poziom: ${daily.level}\nCel: ${daily.targetScore} pkt\nPróby dzisiaj: ${daily.attempts}\n\nPowodzenia!`
+                );
 
                 document.getElementById('modeSelection').style.display = 'none';
                 startGameplay();
             } else {
-                originalStartGame(mode);
+                await originalStartGame(mode);
             }
         };
 
